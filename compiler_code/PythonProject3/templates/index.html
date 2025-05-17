@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Custom Language Interpreter</title>
+<style>
+  /* Reset and base */
+  * {
+    box-sizing: border-box;
+  }
+  body, html {
+    margin: 0; padding: 0;
+    height: 100%;
+    background: linear-gradient(135deg, #2a324b 0%, #1c202b 100%);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: #e0e6f0;
+  }
+  #app {
+    max-width: 960px;
+    margin: 40px auto;
+    background: #22283f;
+    border-radius: 12px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.6);
+    padding: 30px 40px 40px;
+    display: flex;
+    flex-direction: column;
+    min-height: 75vh;
+  }
+  header {
+    border-bottom: 1px solid #3b4160;
+    padding-bottom: 20px;
+    margin-bottom: 30px;
+    text-align: center;
+  }
+  header h1 {
+    margin: 0;
+    font-weight: 700;
+    font-size: 2.8rem;
+    color: #9db4f2;
+    text-shadow: 0 2px 6px rgba(150, 160, 255, 0.6);
+  }
+  label {
+    color: #a8b0d0;
+    font-weight: 600;
+    font-size: 1rem;
+    margin-bottom: 6px;
+    display: inline-block;
+  }
+  textarea#codeInput {
+    width: 100%;
+    height: 320px;
+    background: #1c2032;
+    border: none;
+    border-radius: 10px;
+    padding: 16px 20px;
+    font-family: 'Source Code Pro', monospace;
+    font-size: 1.1rem;
+    color: #d3d9ff;
+    box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.7);
+    resize: vertical;
+    transition: box-shadow 0.3s ease, border 0.3s ease;
+    outline: none;
+  }
+  textarea#codeInput:focus {
+    box-shadow: 0 0 18px 4px #6677ffaa;
+  }
+
+  button {
+    margin: 25px auto 0;
+    padding: 14px 44px;
+    font-size: 1.25rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, #6677ff, #3657d6);
+    border: none;
+    border-radius: 8px;
+    color: #f0f2ff;
+    cursor: pointer;
+    box-shadow: 0 8px 20px #3b49b1aa;
+    transition: background 0.3s ease, box-shadow 0.3s ease;
+    user-select: none;
+    align-self: center;
+    min-width: 180px;
+  }
+  button:hover, button:focus {
+    background: linear-gradient(135deg, #7896ff, #4a69d8);
+    box-shadow: 0 10px 24px #506ddbcc;
+  }
+  button:active {
+    box-shadow: 0 6px 14px #3b49b1cc;
+    transform: scale(0.98);
+  }
+
+  #output {
+    margin-top: 40px;
+    background: #172136;
+    border-radius: 12px;
+    padding: 25px 32px;
+    min-height: 180px;
+    color: #b9c0ff;
+    font-family: 'Source Code Pro', monospace;
+    font-size: 1rem;
+    box-shadow: inset 0 0 30px #273262aa;
+    white-space: pre-wrap;
+    overflow-y: auto;
+    border: 1px solid #354776;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+  #output.error {
+    background: #3f2433;
+    color: #ff7b7b;
+    border-color: #bf4545;
+    box-shadow: inset 0 0 20px #bf4545aa;
+  }
+
+  #errorDetails {
+    margin-bottom: 20px;
+    font-weight: 600;
+    font-size: 1.1rem;
+    line-height: 1.3;
+    white-space: pre-line;
+  }
+  #suggestionSection {
+    border-top: 1px solid #3b4160;
+    padding-top: 22px;
+    margin-top: 20px;
+  }
+  #labelSuggestion {
+    font-weight: 700;
+    font-size: 1.1rem;
+    margin-bottom: 8px;
+    color: #a3b1ff;
+  }
+  pre.code-block {
+    background: #232b60;
+    padding: 15px 18px;
+    border-radius: 8px;
+    border: 1px solid #354776;
+    max-height: 270px;
+    overflow-y: auto;
+    box-shadow: inset 0 0 18px #344a9fcc;
+    color: #cfd8ff;
+    font-size: 1rem;
+    line-height: 1.4;
+  }
+
+  /* Scrollbar for output and code blocks */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #1a1f36;
+    border-radius: 8px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #4c5aaf;
+    border-radius: 8px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #6677ff;
+  }
+
+  /* Responsive adjustments */
+  @media (max-width: 600px) {
+    #app {
+      margin: 20px 18px;
+      padding: 24px 20px 30px;
+    }
+    textarea#codeInput {
+      height: 260px;
+      font-size: 1rem;
+    }
+    button {
+      width: 100%;
+      min-width: auto;
+      font-size: 1.1rem;
+      padding: 14px 0;
+    }
+    pre.code-block {
+      max-height: 200px;
+    }
+  }
+</style>
+</head>
+<body>
+<div id="app" role="main" aria-label="Custom Language Interpreter">
+  <header>
+    <h1>Custom Language Interpreter</h1>
+  </header>
+
+  <label id="labelInput" for="codeInput">Input Code:</label>
+  <textarea id="codeInput" aria-label="Code input" placeholder="// Write your code here&#10;// Example:&#10;// pritn(&quot;Hello World&quot;)&#10;// int x = 10&#10;// if (x == 10) {&#10;//    pritn(&quot;x is 10&quot;)&#10;// }"></textarea>
+  <button id="runBtn" aria-describedby="labelInput" onclick="runCode()">Run</button>
+
+  <div id="output" class="error" role="region" aria-live="polite" style="display:none;">
+    <div id="errorDetails"></div>
+    <div id="suggestionSection" style="display:none;">
+      <div id="labelSuggestion" tabindex="0">Suggested Correction:</div>
+      <pre id="suggestionCode" class="code-block" tabindex="0"></pre>
+    </div>
+  </div>
+</div>
+
+<script>
+async function runCode() {
+  const code = document.getElementById("codeInput").value;
+  const res = await fetch("/run", {
+    method: "POST",
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ code })
+  });
+  const data = await res.json();
+  const output = document.getElementById("output");
+  const errorDetails = document.getElementById("errorDetails");
+  const suggestionSection = document.getElementById("suggestionSection");
+  const suggestionCode = document.getElementById("suggestionCode");
+
+  if (data.status === "error") {
+    output.style.display = "block";
+    output.classList.add("error");
+    errorDetails.textContent = "Errors found in input code:\n" + data.details.join("\n");
+    suggestionCode.textContent = data.suggested_correction || "";
+    suggestionSection.style.display = "block";
+  } else {
+    output.style.display = "block";
+    output.classList.remove("error");
+    errorDetails.textContent = "No errors found. Code is valid.";
+    suggestionSection.style.display = "block";
+    suggestionCode.textContent = data.suggested_correction || "";
+  }
+}
+</script>
+</body>
+</html>
