@@ -25,7 +25,7 @@
     padding: 30px 40px 40px;
     display: flex;
     flex-direction: column;
-    min-height: 75vh;
+    min-height: 90vh;
   }
   header {
     border-bottom: 1px solid #3b4160;
@@ -181,6 +181,83 @@
       max-height: 200px;
     }
   }
+
+  /* Styles for typo addition section */
+  #typoSection {
+    margin-top: 40px;
+    background: #22283f;
+    border-radius: 12px;
+    padding: 20px 30px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+  }
+  #typoSection h2 {
+    margin-top: 0;
+    color: #8fa4ff;
+  }
+  #typoSection input {
+    padding: 10px 14px;
+    margin-right: 12px;
+    font-size: 1rem;
+    border-radius: 6px;
+    border: none;
+    outline: none;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    width: 180px;
+  }
+  #typoSection button {
+    padding: 10px 24px;
+    font-size: 1rem;
+    border-radius: 6px;
+    min-width: auto;
+  }
+
+  /* Styles for feedback section */
+  #feedbackSection {
+    margin-top: 40px;
+    background: #22283f;
+    border-radius: 12px;
+    padding: 20px 30px;
+    box-shadow: 0 6px 25px rgba(0,0,0,0.4);
+  }
+  #feedbackSection h2 {
+    color: #8fa4ff;
+    margin-top: 0;
+  }
+  #feedbackSection textarea {
+    width: 100%;
+    min-height: 80px;
+    background: #1c2032;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-size: 1rem;
+    color: #d3d9ff;
+    box-shadow: inset 0 0 10px rgba(0,0,0,0.7);
+    resize: vertical;
+    outline: none;
+    margin-bottom: 12px;
+  }
+  #feedbackSection button {
+    padding: 10px 26px;
+    font-size: 1rem;
+    background: linear-gradient(135deg, #65a765, #448844);
+    border: none;
+    border-radius: 8px;
+    color: #e0f0d0;
+    cursor: pointer;
+    box-shadow: 0 6px 18px rgba(34, 90, 34, 0.6);
+    transition: background 0.3s ease;
+  }
+  #feedbackSection button:hover, #feedbackSection button:focus {
+    background: linear-gradient(135deg, #7cca6f, #559955);
+  }
+  #feedbackMessage {
+    margin-top: 12px;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #a3dca3;
+  }
 </style>
 </head>
 <body>
@@ -199,7 +276,25 @@
       <div id="labelSuggestion" tabindex="0">Suggested Correction:</div>
       <pre id="suggestionCode" class="code-block" tabindex="0"></pre>
     </div>
+    <div id="parseTreeSection" style="display:none; margin-top: 20px;">
+      <div id="labelParseTree" tabindex="0" style="font-weight:700; font-size:1.1rem; margin-bottom:8px; color:#a3b1ff;">Parse Tree:</div>
+      <pre id="parseTree" class="code-block" tabindex="0"></pre>
+    </div>
   </div>
+
+  <section id="typoSection" aria-label="Add Typo Correction">
+    <h2>Add Typo Correction</h2>
+    <input type="text" id="typoInput" placeholder="Typo" aria-label="Typo word" />
+    <input type="text" id="correctionInput" placeholder="Correction" aria-label="Correction word" />
+    <button onclick="addTypo()">Add Typo</button>
+  </section>
+
+  <section id="feedbackSection" aria-label="User Feedback">
+    <h2>Send Us Your Feedback</h2>
+    <textarea id="feedbackInput" placeholder="Please share your thoughts, issues, or suggestions..." aria-label="User feedback"></textarea>
+    <button onclick="submitFeedback()">Submit Feedback</button>
+    <div id="feedbackMessage" role="alert" aria-live="polite"></div>
+  </section>
 </div>
 
 <script>
@@ -215,6 +310,8 @@ async function runCode() {
   const errorDetails = document.getElementById("errorDetails");
   const suggestionSection = document.getElementById("suggestionSection");
   const suggestionCode = document.getElementById("suggestionCode");
+  const parseTreeSection = document.getElementById("parseTreeSection");
+  const parseTree = document.getElementById("parseTree");
 
   if (data.status === "error") {
     output.style.display = "block";
@@ -222,14 +319,75 @@ async function runCode() {
     errorDetails.textContent = "Errors found in input code:\n" + data.details.join("\n");
     suggestionCode.textContent = data.suggested_correction || "";
     suggestionSection.style.display = "block";
+    if (data.parse_tree) {
+      parseTree.textContent = data.parse_tree;
+      parseTreeSection.style.display = "block";
+    } else {
+      parseTreeSection.style.display = "none";
+    }
   } else {
     output.style.display = "block";
     output.classList.remove("error");
     errorDetails.textContent = "No errors found. Code is valid.";
     suggestionSection.style.display = "block";
     suggestionCode.textContent = data.suggested_correction || "";
+    if (data.parse_tree) {
+      parseTree.textContent = data.parse_tree;
+      parseTreeSection.style.display = "block";
+    } else {
+      parseTreeSection.style.display = "none";
+    }
+  }
+}
+
+async function addTypo() {
+  const typo = document.getElementById("typoInput").value.trim();
+  const correction = document.getElementById("correctionInput").value.trim();
+  if (!typo || !correction) {
+    alert("Please enter both typo and correction.");
+    return;
+  }
+
+  const res = await fetch("/add_typo", {
+    method: "POST",
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ typo, correction })
+  });
+  const data = await res.json();
+  alert(data.message);
+  if (data.status === "success") {
+    // Clear inputs on success
+    document.getElementById("typoInput").value = "";
+    document.getElementById("correctionInput").value = "";
+  }
+}
+
+async function submitFeedback() {
+  const feedbackText = document.getElementById("feedbackInput").value.trim();
+  const messageDiv = document.getElementById("feedbackMessage");
+  if (!feedbackText) {
+    messageDiv.textContent = "Please enter your feedback before submitting.";
+    return;
+  }
+  messageDiv.textContent = "Sending feedback...";
+  try {
+    const res = await fetch("/submit_feedback", {
+      method: "POST",
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ feedback: feedbackText })
+    });
+    const data = await res.json();
+    if (data.status === "success") {
+      messageDiv.textContent = "Thank you for your feedback!";
+      document.getElementById("feedbackInput").value = "";
+    } else {
+      messageDiv.textContent = "Failed to send feedback. Please try again later.";
+    }
+  } catch (error) {
+    messageDiv.textContent = "An error occurred sending feedback.";
   }
 }
 </script>
 </body>
 </html>
+
