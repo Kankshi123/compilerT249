@@ -3,6 +3,21 @@ from lark import Lark, Transformer, UnexpectedInput
 
 app = Flask(__name__)
 
+# Initial typo dictionary
+KEYWORD_TYPO_MAP = {
+    'pritn': 'print',
+    'improt': 'import',
+    'functoin': 'function',
+    'retun': 'return',
+    'brak': 'break',
+    'contnue': 'continue',
+    'els': 'else',
+    'defualt': 'default',
+    'swich': 'switch',
+    'whlie': 'while',
+}
+
+# Grammar with support for nested statements
 python_grammar = r"""
 start: stmt*
 
@@ -10,11 +25,13 @@ stmt: print_stmt
     | assign_stmt
     | if_stmt
     | input_stmt
+    | loop_stmt
 
 print_stmt: "print" "(" expr ")" ";"
 assign_stmt: "int" NAME "=" expr ";"
 input_stmt: NAME "=" "input" "(" STRING ")" ";"
-if_stmt: "if" "(" condition ")"  "{" stmt* "}"
+if_stmt: "if" "(" condition ")" "{" stmt* "}"
+loop_stmt: "while" "(" condition ")" "{" stmt* "}"
 
 ?expr: STRING           -> string
      | NUMBER          -> number
@@ -35,19 +52,6 @@ NUMBER: /\d+/
 %ignore WS
 """
 
-KEYWORD_TYPO_MAP = {
-    'pritn': 'print',
-    'improt': 'import',
-    'functoin': 'function',
-    'retun': 'return',
-    'brak': 'break',
-    'contnue': 'continue',
-    'els': 'else',
-    'defualt': 'default',
-    'swich': 'switch',
-    'whlie': 'while',
-}
-
 class TypoCorrector(Transformer):
     def NAME(self, token):
         value = str(token)
@@ -57,12 +61,17 @@ class TypoCorrector(Transformer):
             token.value = suggestion
         return token
 
-parser = Lark(python_grammar, parser='lalr', transformer=TypoCorrector())
+# LALR parser for main parsing
+parser = Lark(python_grammar, parser='lalr')
+
+# EARLEY parser with placeholders for partial parse tree fallback
+earley_parser = Lark(python_grammar, parser='earley', maybe_placeholders=True)
 
 def preprocess_typos(code):
     import re
     for typo, correction in KEYWORD_TYPO_MAP.items():
-        pattern = r'\b' + re.escape(typo) + r'\b'
+        pattern = r'(?<!\w)' + re.escape(typo) + r'(?=\W|$)'
+
         code = re.sub(pattern, correction, code)
     return code
 
@@ -108,7 +117,7 @@ def correct_code(code):
             else:
                 line_core += '"'
 
-        if not ends_semicolon and not line_core.endswith('{') and not line_core.endswith('}') and not line_strip.startswith(('if', 'else')):
+        if not ends_semicolon and not line_core.endswith('{') and not line_core.endswith('}') and not line_strip.startswith(('if', 'else', 'while')):
             line_core += ';'
 
         corrected_lines.append(line_core)
@@ -128,24 +137,38 @@ def analyze_code(code, auto_correct=False):
         corrected_code = preprocessed_code
     errors = detect_errors(code)
     error_details = []
+    parse_tree_str = None
+
     if errors:
         error_details.extend(errors)
+
     try:
-        parser.parse(corrected_code)
+        # Try main parsing with LALR parser
+        tree = parser.parse(corrected_code)
+        parse_tree_str = tree.pretty()
     except UnexpectedInput as e:
         error_details.append(str(e))
+        # On parse error, try to get partial parse tree with EARLEY parser
+        try:
+            partial_tree = earley_parser.parse(corrected_code)
+            parse_tree_str = partial_tree.pretty()
+        except Exception:
+            parse_tree_str = None
+
     if error_details:
         return {
             "status": "error",
             "details": error_details,
             "input_code": code,
-            "suggested_correction": corrected_code
+            "suggested_correction": corrected_code,
+            "parse_tree": parse_tree_str
         }
     else:
         return {
             "status": "success",
             "input_code": code,
-            "suggested_correction": corrected_code
+            "suggested_correction": corrected_code,
+            "parse_tree": parse_tree_str
         }
 
 @app.route('/')
@@ -159,8 +182,17 @@ def run_code():
         response = analyze_code(code, auto_correct=True)
         return jsonify(response)
     except Exception as e:
-        return jsonify({"status":"error", "details":[str(e)], "input_code": code, "suggested_correction": code})
+        return jsonify({"status":"error", "details":[str(e)], "input_code": code, "suggested_correction": code, "parse_tree": None})
+
+@app.route('/add_typo', methods=['POST'])
+def add_typo():
+    data = request.json
+    typo = data.get('typo')
+    correction = data.get('correction')
+    if typo and correction:
+        KEYWORD_TYPO_MAP[typo] = correction
+        return jsonify({"status": "success", "message": f"Added typo '{typo}' with correction '{correction}'."})
+    return jsonify({"status": "error", "message": "Invalid input."})
 
 if __name__ == '__main__':
     app.run(debug=True)
-
