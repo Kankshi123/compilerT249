@@ -57,7 +57,7 @@ class TypoCorrector(Transformer):
         value = str(token)
         if value in KEYWORD_TYPO_MAP:
             suggestion = KEYWORD_TYPO_MAP[value]
-            print(f"❌ Typo Detected in parse: '{value}' → Suggested Correction: '{suggestion}'")
+            print(f" Typo Detected in parse: '{value}' → Suggested Correction: '{suggestion}'")
             token.value = suggestion
         return token
 
