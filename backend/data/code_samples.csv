@@ -1,0 +1,20 @@
+code,score
+"def add(a, b): return a + b",60
+"for i in range(10): print(i)",50
+"def fact(n):\n    if n==0:\n        return 1\n    else:\n        return n*fact(n-1)",90
+"print('Hello')",30
+"x = [i**2 for i in range(100)]\nprint(sum(x))",70
+"def greet(name):\n    print(f'Hello, {name}!')",60
+"nums = [1, 2, 3, 4]\nsquared = list(map(lambda x: x**2, nums))\nprint(squared)",75
+"class Person:\n    def __init__(self, name):\n        self.name = name\n    def greet(self):\n        return f'Hi, I am {self.name}'",85
+"try:\n    result = 10 / 0\nexcept ZeroDivisionError:\n    print('Cannot divide by zero')",65
+"with open('file.txt') as f:\n    content = f.read()\nprint(content)",70
+"def is_even(n):\n    return n % 2 == 0",55
+"def fib(n):\n    a, b = 0, 1\n    for _ in range(n):\n        a, b = b, a + b\n    return a",80
+"import math\nprint(math.sqrt(25))",40
+"def palindrome(s):\n    return s == s[::-1]",65
+"data = {'a': 1, 'b': 2}\nfor k, v in data.items():\n    print(k, v)",50
+"def is_prime(n):\n    if n <= 1:\n        return False\n    for i in range(2, int(n**0.5)+1):\n        if n % i == 0:\n            return False\n    return True",85
+"from collections import Counter\ns = 'banana'\nprint(Counter(s))",60
+"def merge_sort(arr):\n    if len(arr) > 1:\n        mid = len(arr) // 2\n        L = arr[:mid]\n        R = arr[mid:]\n        merge_sort(L)\n        merge_sort(R)\n        i = j = k = 0\n        while i < len(L) and j < len(R):\n            if L[i] < R[j]:\n                arr[k] = L[i]\n                i += 1\n            else:\n                arr[k] = R[j]\n                j += 1\n            k += 1\n        while i < len(L):\n            arr[k] = L[i]\n            i += 1\n            k += 1\n        while j < len(R):\n            arr[k] = R[j]\n            j += 1\n            k += 1",95
+"def reverse_words(sentence):\n    return ' '.join(sentence.split()[::-1]",55
